@@ -1,0 +1,4 @@
+- hosts: redash
+  tasks:
+  - name: shell
+    shell: pwd
