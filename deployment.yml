@@ -1,4 +1,40 @@
 - hosts: redash
+  connection: docker
   tasks:
   - name: shell
-    shell: pwd
+    shell: ls
+  
+  - name: install docker
+    yum: name=docker state=latest
+    tags: dockerhost
+  
+  - name: autorun docker service
+    service: name=docker state=running enabled=true
+    tags: dockerhost
+  
+  - name: add user in docker group
+    user: name=ansible groups=docker append=yes
+    tags: dockerhost
+
+  - name: get docker group
+    shell: id -a
+    register: group_status
+    changed_when: false
+    tags: dockerhost
+
+  - name: re login
+    shell: "sleep 2 && pkill -u ansible sshd"
+    async: 1
+    poll: 0
+    when: group_status.stdout.find('docker') == -1
+    tags: dockerhost
+  
+  - name: wait untile re login
+    local_action: wait_for host={{ inventory_hostname }} port={{ ssh_port }} delay=10
+    when: group_status.stdout.find('docker') == -1
+    tags: dockerhost
+
+  - name: test docker command
+    shell: docker version
+    changed_when: false
+    tags: dockerhost
